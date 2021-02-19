@@ -3,7 +3,6 @@ package com.richard;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,14 +28,20 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
 public class S3CommitSnapshotter extends DirectUpdateHandler2 {
+    // TODO
+    /*
+        - Add tons of exception handling
+        - Check if bucket exists
+        - Encryption for access keys
+        - a factory or something to differentiate between using minio and s3?
+        - TESTS
+     */
 
     private static final Logger log = LoggerFactory.getLogger(S3CommitSnapshotter.class);
-    private static final String COLLECTION_PATTERN = ".*_shard\\d+";
 
     private String bucketName;
     private String collectionShardName;
