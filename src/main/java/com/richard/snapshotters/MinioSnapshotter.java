@@ -4,36 +4,38 @@ import org.apache.lucene.replicator.IndexInputInputStream;
 import org.apache.lucene.store.IndexInput;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.richard.CommitSnapshotterConfig;
 
 public class MinioSnapshotter {
 
     private AmazonS3 s3Client;
     private AWSStaticCredentialsProvider credentials;
 
-    public MinioSnapshotter(String accessKey, String secretAccessKey) {
-        AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
-        this.credentials = new AWSStaticCredentialsProvider(credentials);
-    }
+    public MinioSnapshotter(CommitSnapshotterConfig config) {
+        credentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(
+                config.getAccessKey(),
+                config.getSecretAccessKey()
+        ));
 
-    public AmazonS3 build(String endpoint, String region){
         ClientConfiguration clientConfiguration = new ClientConfiguration();
         clientConfiguration.setSignerOverride("AWSS3V4SignerType");
 
         s3Client = AmazonS3ClientBuilder
                 .standard()
                 .withClientConfiguration(clientConfiguration)
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
+                        config.getEndpoint(),
+                        config.getRegion()
+                ))
                 .withPathStyleAccessEnabled(true)
                 .withCredentials(credentials)
                 .build();
-        return s3Client;
     }
 
     public AmazonS3 getS3Client() {

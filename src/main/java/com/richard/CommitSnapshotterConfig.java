@@ -4,12 +4,12 @@ import org.apache.solr.core.SolrConfig;
 
 public class CommitSnapshotterConfig {
 
-    private static final String PARENT_KEY = "/commitSnapshotter";
-    private static final String BUCKET_KEY = "/bucketName";
-    private static final String ACCESS_KEY_KEY = "/accessKey";
-    private static final String SECRET_ACCESS_KEY_KEY = "/secretAccessKey";
-    private static final String ENDPOINT_KEY = "/endpoint";
-    private static final String REGION_KEY = "/region";
+    private static final String PARENT_KEY = "commitSnapshotter";
+    private static final String BUCKET_KEY = "bucketName";
+    private static final String ACCESS_KEY_KEY = "accessKey";
+    private static final String SECRET_ACCESS_KEY_KEY = "secretAccessKey";
+    private static final String ENDPOINT_KEY = "endpoint";
+    private static final String REGION_KEY = "region";
 
     private static String accessKey;
     private static String secretAccessKey;
