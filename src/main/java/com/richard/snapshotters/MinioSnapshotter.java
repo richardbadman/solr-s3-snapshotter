@@ -43,7 +43,7 @@ public class MinioSnapshotter {
     }
 
     public boolean doesBucketExist(String bucketName) {
-        return s3Client.doesBucketExistV2(bucketName);
+        return s3Client != null && s3Client.doesBucketExistV2(bucketName);
     }
 
     public void upload(String bucketName, String prefix, String fileName, IndexInput indexInput) {

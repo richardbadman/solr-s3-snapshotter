@@ -58,10 +58,9 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
             return;
         }
 
-        // TODO - if bucket doesn't exist or config ilconfigured
         boolean bucketExists = snapshotter.doesBucketExist(bucketName);
-        if (!bucketExists) {
-            log.info("Bucket {} doesn't exist - skipping upload", bucketName);
+        if (!config.isConfigValid() || !bucketExists) {
+            log.warn("Either config not set correctly, or bucket {} doesn't exist - skipping upload", bucketName);
             return;
         }
         IndexDeletionPolicyWrapper wrapper = core.getDeletionPolicy();
@@ -73,7 +72,11 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
     }
 
     private void setup() {
-        config = new CommitSnapshotterConfig(core.getSolrConfig());
+        try {
+            config = new CommitSnapshotterConfig(core.getSolrConfig()).init();
+        } catch ( RuntimeException e ) {
+            return;
+        }
         collectionShardName = getCollectionShardName(core.getName());
         bucketName = config.getBucketName();
         snapshotter = new MinioSnapshotter(config);

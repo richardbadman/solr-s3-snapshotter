@@ -1,21 +1,27 @@
 package com.richard;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.solr.core.SolrConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CommitSnapshotterConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(CommitSnapshotterConfig.class);
     private static final String PARENT_KEY = "commitSnapshotter";
-    private static final String BUCKET_KEY = "bucketName";
-    private static final String ACCESS_KEY_KEY = "accessKey";
-    private static final String SECRET_ACCESS_KEY_KEY = "secretAccessKey";
-    private static final String ENDPOINT_KEY = "endpoint";
-    private static final String REGION_KEY = "region";
 
-    private static String accessKey;
-    private static String secretAccessKey;
-    private static String bucketName;
-    private static String endpoint;
-    private static String region;
+    private static Map<String, String> keysAndValues = new HashMap<String, String>() {{
+        put("bucketName", "");
+        put("accessKey", "");
+        put("secretAccessKey", "");
+        put("endpoint", "");
+        put("region", "");
+    }};
+
+    private SolrConfig config;
+    private boolean configValid;
 
     /*
         <commitSnapshotter>
@@ -26,34 +32,48 @@ public class CommitSnapshotterConfig {
           <region>us-east-1</region>
         </commitSnapshotter>
      */
-    // TODO - Add verification?
-    // Throws runtimeexception if missing
     public CommitSnapshotterConfig(SolrConfig config) {
-        accessKey = config.get(PARENT_KEY + "/" + ACCESS_KEY_KEY);
-        secretAccessKey = config.get(PARENT_KEY + "/" + SECRET_ACCESS_KEY_KEY);
-        bucketName = config.get(PARENT_KEY + "/" + BUCKET_KEY);
-        endpoint = config.get(PARENT_KEY + "/" + ENDPOINT_KEY);
-        region = config.get(PARENT_KEY + "/" + REGION_KEY);
+        this.config = config;
+        configValid = false;
+    }
+
+    public CommitSnapshotterConfig init() {
+        for( Map.Entry< String, String> entry : keysAndValues.entrySet() ) {
+            try {
+                String value = config.get(PARENT_KEY + "/" + entry.getKey());
+                entry.setValue(value);
+            } catch ( RuntimeException e) {
+                configValid = false;
+                log.warn("Config not set for key {}, uploads disabled", entry.getKey());
+                break;
+            }
+            configValid = true;
+        }
+        return this;
+    }
+
+    public boolean isConfigValid() {
+        return configValid;
     }
 
     public String getAccessKey() {
-        return accessKey;
+        return keysAndValues.get("accessKey");
     }
 
     public String getSecretAccessKey() {
-        return secretAccessKey;
+        return keysAndValues.get("secretAccessKey");
     }
 
     public String getBucketName() {
-        return bucketName;
+        return keysAndValues.get("bucketName");
     }
 
     public String getEndpoint() {
-        return endpoint;
+        return keysAndValues.get("endpoint");
     }
 
     public String getRegion() {
-        return region;
+        return keysAndValues.get("region");
     }
 
 }
