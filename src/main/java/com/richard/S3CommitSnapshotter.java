@@ -7,35 +7,27 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.replicator.IndexInputInputStream;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.solr.core.IndexDeletionPolicyWrapper;
-import org.apache.solr.core.SolrConfig;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.update.CommitUpdateCommand;
 import org.apache.solr.update.DirectUpdateHandler2;
 import org.apache.solr.update.UpdateHandler;
+import org.jose4j.json.internal.json_simple.JSONArray;
+import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.richard.snapshotters.MinioSnapshotter;
 
 public class S3CommitSnapshotter extends DirectUpdateHandler2 {
     // TODO
     /*
         - Add tons of exception handling
-        - Check if bucket exists
+        - [DONE] Check if bucket exists
         - Encryption for access keys
         - a factory or something to differentiate between using minio and s3?
         - TESTS
@@ -44,40 +36,46 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
     private static final Logger log = LoggerFactory.getLogger(S3CommitSnapshotter.class);
 
     private String bucketName;
+    private CommitSnapshotterConfig config;
+    private MinioSnapshotter snapshotter;
     private String collectionShardName;
-    private String accessKey;
-    private String secretAccessKey;
 
     public S3CommitSnapshotter(SolrCore core) {
         super(core);
+        setup();
     }
 
     public S3CommitSnapshotter(SolrCore core, UpdateHandler updateHandler) {
         super(core, updateHandler);
+        setup();
     }
 
     @Override
     public void commit(CommitUpdateCommand cmd) throws IOException {
         super.commit(cmd);
         if (cmd.prepareCommit || cmd.softCommit) {
-            log.info("Either prepare commit or soft commit - skipping");
+            log.info("Either prepare commit or soft commit - skipping upload");
             return;
         }
-        setupConfig(core);
+
+        boolean bucketExists = snapshotter.doesBucketExist(bucketName);
+        if (!bucketExists) {
+            log.info("Bucket {} doesn't exist - skipping upload", bucketName);
+            return;
+        }
         IndexDeletionPolicyWrapper wrapper = core.getDeletionPolicy();
         IndexCommit commit = wrapper.getLatestCommit();
         Collection<String> fileNames = commit.getFileNames();
 
-        upload(fileNames);
+        upload(fileNames, snapshotter, commit.getGeneration());
         wrapper.releaseCommitPoint(commit);
     }
 
-    private void setupConfig(SolrCore core) {
-        SolrConfig solrConfig = core.getSolrConfig();
-        bucketName = solrConfig.get("s3snapshotwriter" + "/s3bucket");
-        accessKey = solrConfig.get("s3snapshotwriter" + "/accesskey");
-        secretAccessKey = solrConfig.get("s3snapshotwriter" + "/secretaccesskey");
+    private void setup() {
+        config = new CommitSnapshotterConfig(core.getSolrConfig());
         collectionShardName = getCollectionShardName(core.getName());
+        bucketName = config.getBucketName();
+        snapshotter = new MinioSnapshotter(config.getAccessKey(), config.getSecretAccessKey());
     }
 
     private String getCollectionShardName(String coreName) {
@@ -90,38 +88,29 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         return coreName;
     }
 
-    private void upload(Collection<String> fileNames) {
-        AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
-        ClientConfiguration clientConfiguration = new ClientConfiguration();
-        clientConfiguration.setSignerOverride("AWSS3V4SignerType");
-        AmazonS3 s3Client = AmazonS3ClientBuilder
-                .standard()
-                .withClientConfiguration(clientConfiguration)
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://localhost:9000", Regions.US_EAST_1.getName()))
-                .withPathStyleAccessEnabled(true)
-                .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                .build();
-
+    private void upload(Collection<String> fileNames, MinioSnapshotter snapshotter, long generation) {
         try ( Directory directory = FSDirectory.open(Paths.get(core.getIndexDir()))) {
-            long timestamp = System.currentTimeMillis();
             fileNames.parallelStream()
                     .forEach(file -> {
-                        String prefix = new StringBuilder(collectionShardName)
-                                .append("_")
-                                .append(timestamp)
-                                .append("/")
-                                .append(file).toString();
                         try (IndexInput indexInput = directory.openInput(file, IOContext.READONCE)) {
-                            ObjectMetadata metadata = new ObjectMetadata();
-                            metadata.setContentLength(indexInput.length());
-                            s3Client.putObject(bucketName, prefix, new IndexInputInputStream(indexInput), metadata);
+                            snapshotter.upload(bucketName, collectionShardName, file, indexInput);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
                     });
+            String details = createDetailsFile(fileNames, generation);
+            String detailFileName = ".snapshot_details_" + generation;
+            snapshotter.upload(bucketName, collectionShardName, detailFileName, details);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String createDetailsFile(Collection<String> fileNames, long generation) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("generation", generation);
+        jsonObject.put("files", new JSONArray(fileNames));
+        return jsonObject.toJSONString();
     }
 }
