@@ -21,7 +21,6 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.richard.snapshotters.MinioSnapshotter;
 import com.richard.snapshotters.S3Snapshotter;
 import com.richard.snapshotters.SnapshotterBuilder;
 
@@ -31,10 +30,11 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         - Add tons of exception handling
         - [DONE] Check if bucket exists
         - Encryption for access keys
-        - a factory or something to differentiate between using minio and s3?
+        - [DONE for now] a factory or something to differentiate between using minio and s3?
         - TESTS
         - Mark if it's a success or not?
             - Retries?
+        - Time uploads?
      */
 
     private static final Logger log = LoggerFactory.getLogger(S3CommitSnapshotter.class);
@@ -72,7 +72,8 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         Collection<String> fileNames = commit.getFileNames();
 
         upload(fileNames, snapshotter, commit.getGeneration());
-        wrapper.releaseCommitPoint(commit);
+        // TODO - change if using lucene8
+        wrapper.releaseCommitPoint(commit.getGeneration());
     }
 
     private void setup() {
