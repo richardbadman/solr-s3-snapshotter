@@ -6,9 +6,6 @@ import com.richard.CommitSnapshotterConfig;
 
 public class CommitSnapshotterConfigInvalidTest extends SolrTestCaseJ4 {
 
-    private static final String BUCKET_NAME = "testing";
-    private static final String ACCESS_KEY = "ar4nd0mk3y";
-
     private CommitSnapshotterConfig config;
 
     @BeforeClass
@@ -18,17 +15,12 @@ public class CommitSnapshotterConfigInvalidTest extends SolrTestCaseJ4 {
 
     @Test
     public void whenInitialisingConfigWithValidConfigInSolr_thenExceptionIsMetAndIsValidReturnsFalse() {
-        try {
-            config = new CommitSnapshotterConfig(h.getCore().getSolrConfig()).init();
-        } catch ( RuntimeException e ) {
+        config = new CommitSnapshotterConfig(h.getCore().getSolrConfig()).init();
             assertFalse(config.isConfigValid());
 
-            assertEquals(config.getBucketName(), BUCKET_NAME);
-            assertEquals(config.getAccessKey(), ACCESS_KEY);
-            assertEquals(config.getSecretAccessKey(), "secret-access-key-not-set");
-            assertEquals(config.getEndpoint(), "endpoint-not-set");
-            assertEquals(config.getRegion(), "region-not-set");
-        }
+            assertEquals("endpoint-not-set", config.getEndpoint());
+            assertEquals("region-not-set", config.getRegion());
+            assertFalse(config.minioEnabled());
     }
 
 

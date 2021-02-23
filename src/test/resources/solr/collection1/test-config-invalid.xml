@@ -51,8 +51,7 @@
   <commitSnapshotter>
     <bucketName>testing</bucketName>
     <accessKey>ar4nd0mk3y</accessKey>
-    <endpoint>http://localhost:1234</endpoint>
-    <region>us-east-1</region>
+    <secretAccessKey>s3cr3t4cc3ssk3y</secretAccessKey>
   </commitSnapshotter>
 
 

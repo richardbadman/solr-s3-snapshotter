@@ -30,6 +30,7 @@ public class CommitSnapshotterConfigValidTest extends SolrTestCaseJ4 {
         assertEquals(config.getSecretAccessKey(), SECRET_ACCESS_KEY);
         assertEquals(config.getEndpoint(), ENDPOINT);
         assertEquals(config.getRegion(), REGION);
+        assertFalse(config.minioEnabled());
     }
 
 
