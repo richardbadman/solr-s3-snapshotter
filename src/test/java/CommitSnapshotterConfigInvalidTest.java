@@ -25,7 +25,9 @@ public class CommitSnapshotterConfigInvalidTest extends SolrTestCaseJ4 {
 
             assertEquals(config.getBucketName(), BUCKET_NAME);
             assertEquals(config.getAccessKey(), ACCESS_KEY);
-            assertEquals(config.getSecretAccessKey(), "");
+            assertEquals(config.getSecretAccessKey(), "secret-access-key-not-set");
+            assertEquals(config.getEndpoint(), "endpoint-not-set");
+            assertEquals(config.getRegion(), "region-not-set");
         }
     }
 

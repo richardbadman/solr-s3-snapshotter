@@ -13,11 +13,12 @@ public class CommitSnapshotterConfig {
     private static final String PARENT_KEY = "commitSnapshotter";
 
     private static Map<String, String> keysAndValues = new HashMap<String, String>() {{
-        put("bucketName", "");
-        put("accessKey", "");
-        put("secretAccessKey", "");
-        put("endpoint", "");
-        put("region", "");
+        put("bucketName", "bucket-name-not-set");
+        put("accessKey", "access-key-not-set");
+        put("secretAccessKey", "secret-access-key-not-set");
+        put("endpoint", "endpoint-not-set");
+        put("region", "region-not-set");
+        put("minioEnabled", "false");
     }};
 
     private SolrConfig config;
@@ -30,8 +31,12 @@ public class CommitSnapshotterConfig {
           <secretAccessKey>S3CR3TACC3SSK3Y</secretAccessKey>
           <endpoint>http://localhost:9000/</endpoint>
           <region>us-east-1</region>
+          <minioEnabled>true</minioEnabled>
         </commitSnapshotter>
      */
+
+    // TODO - make mini class for options, so you can have required fields (or ENUM)
+    // TODO - make static
     public CommitSnapshotterConfig(SolrConfig config) {
         this.config = config;
         configValid = false;
@@ -74,6 +79,10 @@ public class CommitSnapshotterConfig {
 
     public String getRegion() {
         return keysAndValues.get("region");
+    }
+
+    public boolean minioEnabled() {
+        return "true".equals(keysAndValues.get("minioEnabled"));
     }
 
 }

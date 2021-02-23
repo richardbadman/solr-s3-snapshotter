@@ -15,27 +15,30 @@ import com.richard.CommitSnapshotterConfig;
 public class MinioSnapshotter {
 
     private AmazonS3 s3Client;
-    private AWSStaticCredentialsProvider credentials;
+    private CommitSnapshotterConfig config;
 
     public MinioSnapshotter(CommitSnapshotterConfig config) {
-        credentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(
-                config.getAccessKey(),
-                config.getSecretAccessKey()
-        ));
+        this.config = config;
+    }
 
+    public AmazonS3 buildClient() {
         ClientConfiguration clientConfiguration = new ClientConfiguration();
         clientConfiguration.setSignerOverride("AWSS3V4SignerType");
-
-        s3Client = AmazonS3ClientBuilder
-                .standard()
-                .withClientConfiguration(clientConfiguration)
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
-                        config.getEndpoint(),
-                        config.getRegion()
-                ))
-                .withPathStyleAccessEnabled(true)
-                .withCredentials(credentials)
-                .build();
+        return AmazonS3ClientBuilder
+                        .standard()
+                        .withClientConfiguration(clientConfiguration)
+                        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
+                                config.getEndpoint(),
+                                config.getRegion()
+                        ))
+                        .withPathStyleAccessEnabled(true)
+                        .withCredentials(new AWSStaticCredentialsProvider(
+                                new BasicAWSCredentials(
+                                        config.getAccessKey(),
+                                        config.getSecretAccessKey()
+                                )
+                        ))
+                        .build();
     }
 
     public AmazonS3 getS3Client() {

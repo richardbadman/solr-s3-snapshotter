@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.richard.snapshotters.MinioSnapshotter;
+import com.richard.snapshotters.S3Snapshotter;
+import com.richard.snapshotters.SnapshotterBuilder;
 
 public class S3CommitSnapshotter extends DirectUpdateHandler2 {
     // TODO
@@ -31,13 +33,15 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         - Encryption for access keys
         - a factory or something to differentiate between using minio and s3?
         - TESTS
+        - Mark if it's a success or not?
+            - Retries?
      */
 
     private static final Logger log = LoggerFactory.getLogger(S3CommitSnapshotter.class);
 
     private String bucketName;
     private CommitSnapshotterConfig config;
-    private MinioSnapshotter snapshotter;
+    private S3Snapshotter snapshotter;
     private String collectionShardName;
 
     public S3CommitSnapshotter(SolrCore core) {
@@ -79,7 +83,9 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         }
         collectionShardName = getCollectionShardName(core.getName());
         bucketName = config.getBucketName();
-        snapshotter = new MinioSnapshotter(config);
+        snapshotter = new S3Snapshotter(
+                new SnapshotterBuilder(config).getS3CompatibleClient()
+        );
     }
 
     private String getCollectionShardName(String coreName) {
@@ -92,7 +98,7 @@ public class S3CommitSnapshotter extends DirectUpdateHandler2 {
         return coreName;
     }
 
-    private void upload(Collection<String> fileNames, MinioSnapshotter snapshotter, long generation) {
+    private void upload(Collection<String> fileNames, S3Snapshotter snapshotter, long generation) {
         try ( Directory directory = FSDirectory.open(Paths.get(core.getIndexDir()))) {
             fileNames.parallelStream()
                     .forEach(file -> {
